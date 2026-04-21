@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Cocina — Sistema de Pedidos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --warm: #B85C2A;
+    --warm-dark: #9A4A20;
+    --warm-light: #FDF0E6;
+    --dark-bg: #1C0F05;
+    --surface: #FDFAF5;
+    --surface2: #F7F1E8;
+    --text: #1A1208;
+    --text2: #6B5D4F;
+    --border: rgba(0,0,0,0.1);
+    --green-bg: #EAF3DE;
+    --green-text: #27500A;
+    --blue-bg: #E6F1FB;
+    --blue-text: #0C447C;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --red: #E24B4A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface2);
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  /* ── LAYOUT ── */
+  .app { max-width: 480px; margin: 0 auto; background: var(--surface); min-height: 100vh; position: relative; }
+
+  /* ── NAV ── */
+  .top-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--dark-bg);
+    color: #fff;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; }
+  .nav-logo-icon {
+    width: 32px; height: 32px; background: var(--warm); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .nav-logo span { font-family: 'Playfair Display', serif; font-size: 18px; }
+  .nav-tabs { display: flex; gap: 6px; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.25); color: #fff;
+    background: transparent; transition: all 0.2s; position: relative;
+  }
+  .nav-tab.active { background: var(--warm); border-color: var(--warm); }
+  .badge-count {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--red); color: #fff; font-size: 10px; font-weight: 500;
+    width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── CLIENT VIEW ── */
+  .table-bar {
+    padding: 12px 16px; background: var(--warm-light);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .table-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .table-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .table-chip {
+    padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--warm); color: var(--warm);
+    background: #fff; transition: all 0.15s;
+  }
+  .table-chip.active { background: var(--warm); color: #fff; }
+
+  .cart-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; background: var(--warm); color: #fff; border: none;
+    border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .cart-btn:hover { background: var(--warm-dark); }
+  .cart-btn-count {
+    background: rgba(255,255,255,0.25); border-radius: 10px;
+    padding: 1px 7px; font-size: 11px;
+  }
+
+  /* ── MENU ── */
+  .cat-header {
+    padding: 10px 16px 6px;
+    font-size: 10px; font-weight: 500; letter-spacing: 1px;
+    color: var(--warm); text-transform: uppercase;
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .menu-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .menu-item:hover { background: var(--warm-light); }
+  .item-info { flex: 1; min-width: 0; margin-right: 12px; }
+  .item-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .item-desc { font-size: 12px; color: var(--text2); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-price { font-size: 13px; color: var(--warm); font-weight: 500; }
+
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .qty-minus, .qty-plus {
+    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; transition: all 0.15s; border: none;
+  }
+  .qty-minus { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .qty-minus:hover { background: #eee; }
+  .qty-plus { background: var(--warm); color: #fff; }
+  .qty-plus:hover { background: var(--warm-dark); }
+  .qty-num { font-size: 14px; font-weight: 500; min-width: 18px; text-align: center; }
+
+  /* ── CART PANEL ── */
+  .cart-panel {
+    border-top: 2px solid var(--warm);
+    background: var(--surface);
+  }
+  .cart-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .cart-title { font-size: 14px; font-weight: 500; }
+  .cart-close {
+    background: none; border: none; cursor: pointer;
+    font-size: 20px; color: var(--text2); line-height: 1;
+  }
+  .cart-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
+  }
+  .cart-row-left { display: flex; align-items: center; gap: 8px; }
+  .cart-qty-badge {
+    background: var(--warm-light); color: #7A3B10;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; flex-shrink: 0;
+  }
+  .cart-item-name { font-size: 13px; }
+  .cart-row-right { display: flex; align-items: center; gap: 10px; }
+  .cart-item-price { font-size: 13px; color: var(--text2); }
+  .cart-item-remove {
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; color: var(--text2); line-height: 1;
+  }
+  .cart-footer {
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .cart-total { font-size: 15px; font-weight: 500; }
+  .send-btn {
+    padding: 10px 18px; background: var(--warm); color: #fff;
+    border: none; border-radius: 8px; font-family: inherit; font-size: 13px;
+    font-weight: 500; cursor: pointer; transition: background 0.2s;
+  }
+  .send-btn:hover { background: var(--warm-dark); }
+
+  /* ── CONFIRM ── */
+  .confirm-view {
+    padding: 60px 24px; text-align: center;
+  }
+  .confirm-icon {
+    width: 64px; height: 64px; background: var(--green-bg); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 20px;
+  }
+  .confirm-title { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px; }
+  .confirm-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
+  .outline-btn {
+    padding: 10px 20px; background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; font-family: inherit; font-size: 13px; cursor: pointer;
+    color: var(--text); transition: background 0.2s;
+  }
+  .outline-btn:hover { background: var(--surface2); }
+
+  /* ── KITCHEN VIEW ── */
+  .kitchen-header {
+    padding: 12px 16px; background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-chip {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .filter-chip.active { background: var(--warm); color: #fff; border-color: var(--warm); }
+  .kitchen-count { font-size: 12px; color: var(--text2); }
+
+  .order-card {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .order-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+  }
+  .order-card-left { display: flex; align-items: center; gap: 8px; }
+  .order-table { font-size: 15px; font-weight: 500; }
+  .status-badge {
+    padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .status-pending { background: var(--amber-bg); color: var(--amber-text); }
+  .status-cooking { background: var(--blue-bg); color: var(--blue-text); }
+  .status-ready { background: var(--green-bg); color: var(--green-text); }
+  .order-time { font-size: 11px; color: var(--text2); }
+  .order-card-actions { display: flex; gap: 6px; }
+  .action-btn {
+    padding: 5px 12px; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .action-primary { background: var(--warm); color: #fff; border: none; }
+  .action-primary:hover { background: var(--warm-dark); }
+  .action-danger {
+    background: transparent; color: #A32D2D; border: 1px solid rgba(163,45,45,0.3);
+  }
+  .action-danger:hover { background: #FCEBEB; }
+
+  .order-items { display: flex; flex-direction: column; gap: 5px; }
+  .order-item { display: flex; align-items: center; gap: 8px; }
+  .order-item-qty {
+    background: var(--warm-light); color: #7A3B10;
+    padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500;
+  }
+  .order-item-name { font-size: 13px; }
+  .order-total { margin-top: 8px; font-size: 12px; color: var(--text2); }
+
+  .empty-state {
+    padding: 60px 24px; text-align: center; color: var(--text2);
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+
+  /* ── QR INFO ── */
+  .qr-hint {
+    padding: 10px 16px; background: var(--blue-bg); border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--blue-text); text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const MENU = [
+  { cat: "Entradas", items: [
+    { id: 1, name: "Ceviche de camarón", desc: "Camarones frescos, limón, cilantro", price: 8.50 },
+    { id: 2, name: "Patacones con guacamole", desc: "Plátano frito, aguacate fresco", price: 6.00 },
+    { id: 3, name: "Sopa del día", desc: "Pregunta a tu mesero", price: 5.50 },
+  ]},
+  { cat: "Platos fuertes", items: [
+    { id: 4, name: "Arroz con pollo", desc: "Pollo guisado, arroz amarillo, ensalada", price: 12.00 },
+    { id: 5, name: "Filete de corvina", desc: "A la plancha, papas y vegetales", price: 16.50 },
+    { id: 6, name: "Ropa vieja", desc: "Carne desmechada, arroz, frijoles", price: 13.00 },
+    { id: 7, name: "Pasta al pesto", desc: "Vegetariano, albahaca, parmesano", price: 11.00 },
+  ]},
+  { cat: "Bebidas", items: [
+    { id: 8, name: "Chicha de maíz", desc: "Bebida tradicional panameña", price: 3.00 },
+    { id: 9, name: "Jugo natural", desc: "Maracuyá, mango o piña", price: 3.50 },
+    { id: 10, name: "Agua mineral", desc: "Con o sin gas", price: 2.00 },
+    { id: 11, name: "Café panameño", desc: "Café de altura, Boquete", price: 3.50 },
+  ]},
+  { cat: "Postres", items: [
+    { id: 12, name: "Tres leches", desc: "Esponjoso, crema chantilly", price: 5.00 },
+    { id: 13, name: "Flan de coco", desc: "Tradicional, con caramelo", price: 4.50 },
+  ]}
+];
+
+let state = {
+  view: 'client',
+  table: '1',
+  cart: {},
+  cartOpen: false,
+  orderSent: false,
+  orders: [],
+  kitchenFilter: 'all'
+};
+
+function findItem(id) {
+  for (const c of MENU) for (const i of c.items) if (i.id === id) return i;
+  return null;
+}
+
+function getCartItems() {
+  return Object.entries(state.cart)
+    .filter(([, qty]) => qty > 0)
+    .map(([id, qty]) => ({ item: findItem(parseInt(id)), qty }))
+    .filter(x => x.item);
+}
+
+function getCartTotal() {
+  return getCartItems().reduce((s, { item, qty }) => s + item.price * qty, 0);
+}
+
+function getCartCount() {
+  return Object.values(state.cart).reduce((a, b) => a + b, 0);
+}
+
+function elapsed(time) {
+  const mins = Math.floor((Date.now() - time) / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins === 1) return 'hace 1 min';
+  return `hace ${mins} min`;
+}
+
+function render() {
+  document.getElementById('app').innerHTML = buildApp();
+}
+
+function buildApp() {
+  return `
+    ${buildNav()}
+    ${state.view === 'client' ? buildClient() : buildKitchen()}
+  `;
+}
+
+function buildNav() {
+  const pendingCount = state.orders.filter(o => o.status === 'pending').length;
+  return `
+    <div class="top-nav">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">🍽</div>
+        <span>La Cocina</span>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab ${state.view === 'client' ? 'active' : ''}" onclick="switchView('client')">Cliente</button>
+        <button class="nav-tab ${state.view === 'kitchen' ? 'active' : ''}" onclick="switchView('kitchen')" style="position:relative">
+          Cocina
+          ${pendingCount > 0 ? `<span class="badge-count">${pendingCount}</span>` : ''}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function buildClient() {
+  if (state.orderSent) return buildConfirm();
+  const count = getCartCount();
+  const total = getCartTotal();
+  return `
+    <div class="qr-hint">📱 Escanea el QR en tu mesa para abrir esta página</div>
+    <div class="table-bar">
+      <div>
+        <div class="table-label">¿En qué mesa estás?</div>
+        <div class="table-chips">
+          ${['1','2','3','4','5','6'].map(t => `
+            <button class="table-chip ${state.table === t ? 'active' : ''}" onclick="setTable('${t}')">Mesa ${t}</button>
+          `).join('')}
+        </div>
+      </div>
+      ${count > 0 ? `
+        <button class="cart-btn" onclick="toggleCart()">
+          🛒 Carrito
+          <span class="cart-btn-count">${count}</span>
+          <span>$${total.toFixed(2)}</span>
+        </button>
+      ` : ''}
+    </div>
+    ${MENU.map(cat => `
+      <div class="cat-header">${cat.cat}</div>
+      ${cat.items.map(item => {
+        const qty = state.cart[item.id] || 0;
+        return `
+          <div class="menu-item">
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-desc">${item.desc}</div>
+              <div class="item-price">$${item.price.toFixed(2)}</div>
+            </div>
+            <div class="qty-ctrl">
+              ${qty > 0 ? `
+                <button class="qty-minus" onclick="updateCart(${item.id}, -1)">−</button>
+                <span class="qty-num">${qty}</span>
+              ` : ''}
+              <button class="qty-plus" onclick="updateCart(${item.id}, 1)">+</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    `).join('')}
+    ${state.cartOpen && count > 0 ? buildCartPanel() : ''}
+    <div style="height:20px"></div>
+  `;
+}
+
+function buildCartPanel() {
+  const items = getCartItems();
+  const total = getCartTotal();
+  return `
+    <div class="cart-panel">
+      <div class="cart-header">
+        <span class="cart-title">Tu pedido — Mesa ${state.table}</span>
+        <button class="cart-close" onclick="toggleCart()">×</button>
+      </div>
+      ${items.map(({ item, qty }) => `
+        <div class="cart-row">
+          <div class="cart-row-left">
+            <span class="cart-qty-badge">${qty}</span>
+            <span class="cart-item-name">${item.name}</span>
+          </div>
+          <div class="cart-row-right">
+            <span class="cart-item-price">$${(item.price * qty).toFixed(2)}</span>
+            <button class="cart-item-remove" onclick="removeFromCart(${item.id})">×</button>
+          </div>
+        </div>
+      `).join('')}
+      <div class="cart-footer">
+        <span class="cart-total">Total: $${total.toFixed(2)}</span>
+        <button class="send-btn" onclick="sendOrder()">Enviar a cocina 🍳</button>
+      </div>
+    </div>
+  `;
+}
+
+function buildConfirm() {
+  return `
+    <div class="confirm-view">
+      <div class="confirm-icon">✓</div>
+      <div class="confirm-title">¡Pedido enviado!</div>
+      <div class="confirm-sub">
+        Tu orden fue enviada a la cocina.<br>
+        Te avisamos cuando esté lista, Mesa ${state.table}.
+      </div>
+      <button class="outline-btn" onclick="newOrder()">Agregar más al pedido</button>
+    </div>
+  `;
+}
+
+function buildKitchen() {
+  const filters = [
+    { key: 'all', label: 'Todos' },
+    { key: 'pending', label: 'Pendientes' },
+    { key: 'cooking', label: 'Preparando' },
+    { key: 'ready', label: 'Listos' },
+  ];
+  const filtered = state.orders
+    .filter(o => state.kitchenFilter === 'all' || o.status === state.kitchenFilter)
+    .slice().reverse();
+
+  return `
+    <div class="kitchen-header">
+      <div class="filter-chips">
+        ${filters.map(f => `
+          <button class="filter-chip ${state.kitchenFilter === f.key ? 'active' : ''}" onclick="setFilter('${f.key}')">${f.label}</button>
+        `).join('')}
+      </div>
+      <span class="kitchen-count">${state.orders.length} orden(es)</span>
+    </div>
+    ${filtered.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-icon">🍳</div>
+        <div class="empty-text">No hay órdenes ${state.kitchenFilter === 'all' ? 'todavía' : 'en este estado'}</div>
+      </div>
+    ` : filtered.map(o => buildOrderCard(o)).join('')}
+  `;
+}
+
+function buildOrderCard(order) {
+  const statusMap = {
+    pending: { label: 'Pendiente', cls: 'status-pending', next: 'cooking', nextLabel: 'Iniciar preparación' },
+    cooking: { label: 'Preparando', cls: 'status-cooking', next: 'ready', nextLabel: 'Marcar como listo' },
+    ready: { label: '¡Listo!', cls: 'status-ready', next: null, nextLabel: '' }
+  };
+  const s = statusMap[order.status];
+  return `
+    <div class="order-card">
+      <div class="order-card-header">
+        <div class="order-card-left">
+          <span class="order-table">Mesa ${order.table}</span>
+          <span class="status-badge ${s.cls}">${s.label}</span>
+          <span class="order-time">${elapsed(order.time)}</span>
+        </div>
+        <div class="order-card-actions">
+          ${s.next ? `<button class="action-btn action-primary" onclick="updateOrderStatus('${order.id}','${s.next}')">${s.nextLabel}</button>` : ''}
+          <button class="action-btn action-danger" onclick="deleteOrder('${order.id}')">Eliminar</button>
+        </div>
+      </div>
+      <div class="order-items">
+        ${order.items.map(({ item, qty }) => `
+          <div class="order-item">
+            <span class="order-item-qty">${qty}×</span>
+            <span class="order-item-name">${item.name}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="order-total">Total: $${order.total.toFixed(2)}</div>
+    </div>
+  `;
+}
+
+/* ── ACTIONS ── */
+function switchView(v) { state.view = v; render(); }
+function setTable(t) { state.table = t; render(); }
+function toggleCart() { state.cartOpen = !state.cartOpen; render(); }
+function setFilter(f) { state.kitchenFilter = f; render(); }
+
+function updateCart(id, delta) {
+  state.cart[id] = Math.max(0, (state.cart[id] || 0) + delta);
+  render();
+}
+
+function removeFromCart(id) {
+  delete state.cart[id];
+  render();
+}
+
+function sendOrder() {
+  const items = getCartItems();
+  if (items.length === 0) return;
+  state.orders.push({
+    id: Date.now().toString(),
+    table: state.table,
+    items: items,
+    total: getCartTotal(),
+    status: 'pending',
+    time: Date.now()
+  });
+  state.cart = {};
+  state.cartOpen = false;
+  state.orderSent = true;
+  render();
+}
+
+function newOrder() { state.orderSent = false; render(); }
+
+function updateOrderStatus(id, status) {
+  const o = state.orders.find(x => x.id === id);
+  if (o) o.status = status;
+  render();
+}
+
+function deleteOrder(id) {
+  state.orders = state.orders.filter(x => x.id !== id);
+  render();
+}
+
+// Auto-refresh kitchen view every 30 seconds
+setInterval(() => { if (state.view === 'kitchen') render(); }, 30000);
+
+render();
+</script>
+</body>
+</html>
